@@ -82,3 +82,39 @@ if uploaded_file is not None:
                 st.error("Something went wrong.")
 
                 st.write(e)
+                st.divider()
+
+st.subheader("💬 Ask about this PDF")
+
+question = st.text_input(
+    "Enter your question"
+)
+
+if st.button("Ask AI"):
+
+    question_webhook_url = "PUT_QUESTION_WEBHOOK_URL_HERE"
+
+    files = {
+        "file": (
+            uploaded_file.name,
+            uploaded_file.getvalue(),
+            "application/pdf"
+        )
+    }
+
+    data = {
+        "question": question
+    }
+
+    response = requests.post(
+        question_webhook_url,
+        files=files,
+        data=data
+    )
+
+    st.write("Status Code:", response.status_code)
+
+    try:
+        st.json(response.json())
+    except:
+        st.write(response.text)
