@@ -40,33 +40,48 @@ if uploaded_file is not None:
 
                 response = requests.post(
                     webhook_url,
-                    files=files
+                    files=files,
+                    timeout=90
                 )
 
                 if response.status_code == 200:
 
-                    result = response.json()
+                    try:
 
-                    st.success("Analysis completed successfully.")
+                        result = response.json()
 
-                    st.divider()
+                        st.success(
+                            "Analysis completed successfully."
+                        )
 
-                    st.subheader("📌 Document Title")
-                    st.write(result["title"])
+                        st.divider()
 
-                    st.subheader("📝 Summary")
-                    st.write(result["summary"])
+                        if "title" in result:
+                            st.subheader("📌 Document Title")
+                            st.write(result["title"])
 
-                    st.subheader("🎯 Main Topic")
-                    st.write(result["main_topic"])
+                        if "summary" in result:
+                            st.subheader("📝 Summary")
+                            st.write(result["summary"])
 
-                    st.subheader("🔑 Key Points")
+                        if "main_topic" in result:
+                            st.subheader("🎯 Main Topic")
+                            st.write(result["main_topic"])
 
-                    for i, point in enumerate(
-                        result["key_points"],
-                        start=1
-                    ):
-                        st.write(f"{i}. {point}")
+                        if "key_points" in result:
+                            st.subheader("🔑 Key Points")
+
+                            for i, point in enumerate(
+                                result["key_points"],
+                                start=1
+                            ):
+                                st.write(f"{i}. {point}")
+
+                        if not isinstance(result, dict):
+                            st.write(result)
+
+                    except Exception:
+                        st.write(response.text)
 
                 else:
 
@@ -77,12 +92,20 @@ if uploaded_file is not None:
 
                     st.write(response.text)
 
+            except requests.exceptions.Timeout:
+
+                st.error(
+                    "The request took too long. "
+                    "Please try again."
+                )
+
             except Exception as e:
 
                 st.error("Something went wrong.")
-
                 st.write(e)
-                st.divider()
+
+
+st.divider()
 
 st.subheader("💬 Ask about this PDF")
 
@@ -92,29 +115,89 @@ question = st.text_input(
 
 if st.button("Ask AI"):
 
-    question_webhook_url = "https://essa2030.app.n8n.cloud/webhook-test/125f0339-39e9-467d-945e-f7751ab64440"
+    if uploaded_file is None:
 
-    files = {
-        "file": (
-            uploaded_file.name,
-            uploaded_file.getvalue(),
-            "application/pdf"
+        st.warning("Please upload a PDF first.")
+
+    elif not question.strip():
+
+        st.warning("Please enter a question.")
+
+    else:
+
+        question_webhook_url = (
+            "https://essa2030.app.n8n.cloud/webhook/pdf-q"
         )
-    }
 
-    data = {
-        "question": question
-    }
+        files = {
+            "file": (
+                uploaded_file.name,
+                uploaded_file.getvalue(),
+                "application/pdf"
+            )
+        }
 
-    response = requests.post(
-        question_webhook_url,
-        files=files,
-        data=data
-    )
+        data = {
+            "question": question
+        }
 
-    st.write("Status Code:", response.status_code)
+        with st.spinner("Searching the PDF..."):
 
-    try:
-        st.json(response.json())
-    except:
-        st.write(response.text)
+            try:
+
+                response = requests.post(
+                    question_webhook_url,
+                    files=files,
+                    data=data,
+                    timeout=90
+                )
+
+                if response.status_code == 200:
+
+                    try:
+
+                        result = response.json()
+
+                        st.success("Answer received.")
+
+                        st.subheader("🤖 Answer")
+
+                        if isinstance(result, dict):
+
+                            answer = (
+                                result.get("answer")
+                                or result.get("output")
+                                or result.get("text")
+                                or result
+                            )
+
+                            st.write(answer)
+
+                        else:
+                            st.write(result)
+
+                    except Exception:
+
+                        st.success("Answer received.")
+                        st.write(response.text)
+
+                else:
+
+                    st.error(
+                        f"Request failed with status code: "
+                        f"{response.status_code}"
+                    )
+
+                    st.write(response.text)
+
+            except requests.exceptions.Timeout:
+
+                st.error(
+                    "The request took too long. "
+                    "Please try again."
+                )
+
+            except Exception as e:
+
+                st.error("Something went wrong.")
+                st.write(e)
