@@ -22,6 +22,10 @@ if uploaded_file is not None:
 
     st.success(f"Selected file: {uploaded_file.name}")
 
+    # =========================
+    # ANALYZE PDF
+    # =========================
+
     if st.button("Analyze PDF"):
 
         webhook_url = "https://essa2030.app.n8n.cloud/webhook/pdf-q"
@@ -47,7 +51,6 @@ if uploaded_file is not None:
                 if response.status_code == 200:
 
                     try:
-
                         result = response.json()
 
                         st.success(
@@ -55,32 +58,32 @@ if uploaded_file is not None:
                         )
 
                         st.divider()
+                        st.subheader("📄 PDF Analysis")
 
-                        if "title" in result:
-                            st.subheader("📌 Document Title")
-                            st.write(result["title"])
+                        if isinstance(result, dict):
 
-                        if "summary" in result:
-                            st.subheader("📝 Summary")
-                            st.write(result["summary"])
+                            answer = (
+                                result.get("answer")
+                                or result.get("output")
+                                or result.get("text")
+                            )
 
-                        if "main_topic" in result:
-                            st.subheader("🎯 Main Topic")
-                            st.write(result["main_topic"])
+                            if answer:
+                                st.write(answer)
+                            else:
+                                st.write(result)
 
-                        if "key_points" in result:
-                            st.subheader("🔑 Key Points")
-
-                            for i, point in enumerate(
-                                result["key_points"],
-                                start=1
-                            ):
-                                st.write(f"{i}. {point}")
-
-                        if not isinstance(result, dict):
+                        else:
                             st.write(result)
 
                     except Exception:
+
+                        st.success(
+                            "Analysis completed successfully."
+                        )
+
+                        st.divider()
+                        st.subheader("📄 PDF Analysis")
                         st.write(response.text)
 
                 else:
@@ -106,6 +109,10 @@ if uploaded_file is not None:
 
 
 st.divider()
+
+# =========================
+# ASK ABOUT PDF
+# =========================
 
 st.subheader("💬 Ask about this PDF")
 
@@ -155,11 +162,9 @@ if st.button("Ask AI"):
                 if response.status_code == 200:
 
                     try:
-
                         result = response.json()
 
                         st.success("Answer received.")
-
                         st.subheader("🤖 Answer")
 
                         if isinstance(result, dict):
@@ -168,10 +173,12 @@ if st.button("Ask AI"):
                                 result.get("answer")
                                 or result.get("output")
                                 or result.get("text")
-                                or result
                             )
 
-                            st.write(answer)
+                            if answer:
+                                st.write(answer)
+                            else:
+                                st.write(result)
 
                         else:
                             st.write(result)
@@ -179,6 +186,7 @@ if st.button("Ask AI"):
                     except Exception:
 
                         st.success("Answer received.")
+                        st.subheader("🤖 Answer")
                         st.write(response.text)
 
                 else:
