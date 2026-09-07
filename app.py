@@ -24,7 +24,7 @@ if uploaded_file is not None:
 
     if st.button("Analyze PDF"):
 
-        webhook_url = "https://essa2030.app.n8n.cloud/webhook-test/PDF-AGENT"
+        webhook_url = "https://essa2030.app.n8n.cloud/webhook/pdf-q"
 
         files = {
             "file": (
