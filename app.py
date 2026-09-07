@@ -10,25 +10,31 @@ st.set_page_config(
 st.title("📄 PDF AI Assistant")
 
 st.write(
-    "Upload a PDF file and let the AI agent analyze and summarize it."
+    "Upload a PDF file and let the AI agent analyze, "
+    "summarize, and answer questions about it."
 )
+
+# =========================
+# UPLOAD PDF
+# =========================
 
 uploaded_file = st.file_uploader(
     "Upload PDF",
     type=["pdf"]
 )
 
+WEBHOOK_URL = "https://essa2030.app.n8n.cloud/webhook/pdf-q"
+
+
+# =========================
+# ANALYZE PDF
+# =========================
+
 if uploaded_file is not None:
 
     st.success(f"Selected file: {uploaded_file.name}")
 
-    # =========================
-    # ANALYZE PDF
-    # =========================
-
     if st.button("Analyze PDF"):
-
-        webhook_url = "https://essa2030.app.n8n.cloud/webhook/pdf-q"
 
         files = {
             "file": (
@@ -43,48 +49,107 @@ if uploaded_file is not None:
             try:
 
                 response = requests.post(
-                    webhook_url,
+                    WEBHOOK_URL,
                     files=files,
                     timeout=90
                 )
 
                 if response.status_code == 200:
 
+                    st.success(
+                        "Analysis completed successfully."
+                    )
+
+                    st.divider()
+                    st.subheader("📄 PDF Analysis")
+
                     try:
+
                         result = response.json()
 
-                        st.success(
-                            "Analysis completed successfully."
-                        )
-
-                        st.divider()
-                        st.subheader("📄 PDF Analysis")
-
+                        # Structured Output returned by n8n
                         if isinstance(result, dict):
 
-                            answer = (
-                                result.get("answer")
-                                or result.get("output")
-                                or result.get("text")
-                            )
+                            # Main analysis
+                            if "state" in result:
 
-                            if answer:
-                                st.write(answer)
-                            else:
+                                st.markdown(
+                                    str(result["state"])
+                                )
+
+                            # Key points
+                            if "cities" in result:
+
+                                points = result["cities"]
+
+                                if points:
+
+                                    st.subheader(
+                                        "🔑 Key Points"
+                                    )
+
+                                    for i, point in enumerate(
+                                        points,
+                                        start=1
+                                    ):
+                                        st.write(
+                                            f"{i}. {point}"
+                                        )
+
+                            # Standard answer/output/text
+                            elif "answer" in result:
+
+                                answer = result["answer"]
+
+                                if isinstance(answer, dict):
+
+                                    if "state" in answer:
+                                        st.markdown(
+                                            str(
+                                                answer["state"]
+                                            )
+                                        )
+
+                                    if "cities" in answer:
+
+                                        st.subheader(
+                                            "🔑 Key Points"
+                                        )
+
+                                        for i, point in enumerate(
+                                            answer["cities"],
+                                            start=1
+                                        ):
+                                            st.write(
+                                                f"{i}. {point}"
+                                            )
+
+                                else:
+                                    st.markdown(
+                                        str(answer)
+                                    )
+
+                            elif "output" in result:
+                                st.markdown(
+                                    str(result["output"])
+                                )
+
+                            elif "text" in result:
+                                st.markdown(
+                                    str(result["text"])
+                                )
+
+                            elif (
+                                "state" not in result
+                                and "cities" not in result
+                            ):
                                 st.write(result)
 
                         else:
                             st.write(result)
 
                     except Exception:
-
-                        st.success(
-                            "Analysis completed successfully."
-                        )
-
-                        st.divider()
-                        st.subheader("📄 PDF Analysis")
-                        st.write(response.text)
+                        st.markdown(response.text)
 
                 else:
 
@@ -108,11 +173,11 @@ if uploaded_file is not None:
                 st.write(e)
 
 
-st.divider()
-
 # =========================
 # ASK ABOUT PDF
 # =========================
+
+st.divider()
 
 st.subheader("💬 Ask about this PDF")
 
@@ -132,10 +197,6 @@ if st.button("Ask AI"):
 
     else:
 
-        question_webhook_url = (
-            "https://essa2030.app.n8n.cloud/webhook/pdf-q"
-        )
-
         files = {
             "file": (
                 uploaded_file.name,
@@ -153,7 +214,7 @@ if st.button("Ask AI"):
             try:
 
                 response = requests.post(
-                    question_webhook_url,
+                    WEBHOOK_URL,
                     files=files,
                     data=data,
                     timeout=90
@@ -161,22 +222,52 @@ if st.button("Ask AI"):
 
                 if response.status_code == 200:
 
-                    try:
-                        result = response.json()
+                    st.success("Answer received.")
 
-                        st.success("Answer received.")
-                        st.subheader("🤖 Answer")
+                    st.subheader("🤖 Answer")
+
+                    try:
+
+                        result = response.json()
 
                         if isinstance(result, dict):
 
-                            answer = (
-                                result.get("answer")
-                                or result.get("output")
-                                or result.get("text")
-                            )
+                            # Current Structured Output
+                            if "state" in result:
+                                st.markdown(
+                                    str(result["state"])
+                                )
 
-                            if answer:
-                                st.write(answer)
+                            elif "answer" in result:
+
+                                answer = result["answer"]
+
+                                if isinstance(answer, dict):
+
+                                    if "state" in answer:
+                                        st.markdown(
+                                            str(
+                                                answer["state"]
+                                            )
+                                        )
+                                    else:
+                                        st.write(answer)
+
+                                else:
+                                    st.markdown(
+                                        str(answer)
+                                    )
+
+                            elif "output" in result:
+                                st.markdown(
+                                    str(result["output"])
+                                )
+
+                            elif "text" in result:
+                                st.markdown(
+                                    str(result["text"])
+                                )
+
                             else:
                                 st.write(result)
 
@@ -185,9 +276,7 @@ if st.button("Ask AI"):
 
                     except Exception:
 
-                        st.success("Answer received.")
-                        st.subheader("🤖 Answer")
-                        st.write(response.text)
+                        st.markdown(response.text)
 
                 else:
 
